@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tiempo de Campo Pro</title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
+    </script>
+    <link rel="manifest" href="manifest.json">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1A73E8',
+                        secondary: '#5F6368',
+                        accent: '#10B981',
+                        danger: '#EF4444',
+                        glass: 'rgba(255, 255, 255, 0.7)',
+                    },
+                    fontFamily: {
+                        display: ['Outfit', 'sans-serif'],
+                        body: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        h1,
+        h2,
+        h3 {
+            font-family: 'Outfit', sans-serif;
+        }
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .nav-item.active {
+            color: #1A73E8;
+        }
+        .nav-item.active i {
+            transform: translateY(-4px);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #E2E8F0;
+            border-radius: 10px;
+        }
+        .tab-btn.active {
+            border-bottom: 3px solid #1A73E8;
+            color: #1A73E8;
+            font-weight: 600;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        .animate-slide-up {
+            animation: slideUp 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeInOut {
+            0% {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            15% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            85% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+        .fullscreen-hint {
+            animation: fadeInOut 4s ease-in-out forwards;
+        }
+
+        .calendar-day.today {
+            border: 2px solid #1A73E8;
+        }
+        .calendar-day.has-activity::after {
+            content: '';
+            display: block;
+            width: 4px;
+            height: 4px;
+            background: #1A73E8;
+            border-radius: 50%;
+            margin: 0 auto;
+        }
+        .no-select {
+            user-select: none;
+        }
+
+        #rv {
+            display: none;
+        }
+
+        .bar-chart-bar {
+            transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .streak-glow {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        .capture-area {
+            background: #f8fafc !important;
+        }
+        .capture-area .bg-white {
+            background: #ffffff !important;
+        }
+        .capture-area .bg-slate-800 {
+            background: #1e293b !important;
+        }
+
+        /* NUEVO: Estilos para el time picker tipo reloj */
+        .time-picker-btn {
+            transition: all 0.15s ease;
+        }
+        .time-picker-btn:active {
+            transform: scale(0.9);
+            background: #e2e8f0;
+        }
+        .time-picker-display {
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden">
+
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center z-20">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xl">T</div>
+            <h1 class="text-xl font-bold text-slate-800 tracking-tight">Tiempo de Campo <span class="text-primary">Pro</span></h1>
+        </div>
+        <div id="service-year-badge" class="text-[10px] uppercase font-bold tracking-widest text-slate-400 bg-slate-100 px-2 py-1 rounded">
+            SEP - AGO
+        </div>
+    </header>
+
+    <main id="app-container" class="flex-1 overflow-y-auto px-4 py-6 custom-scrollbar pb-24 relative"></main>
+
+    <nav class="fixed bottom-0 left-0 right-0 glass-morphism border-t border-slate-200 px-2 py-2 z-30 flex justify-around items-center">
+        <button onclick="switchView('hoy')" class="nav-item flex flex-col items-center gap-1 p-2 transition-all duration-300 active:scale-95" id="nav-hoy">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="text-[10px] font-medium">Hoy</span>
+        </button>
+        <button onclick="switchView('registro')" class="nav-item flex flex-col items-center gap-1 p-2 transition-all duration-300 active:scale-95 text-slate-400" id="nav-registro">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span class="text-[10px] font-medium">Historial</span>
+        </button>
+        <button onclick="switchView('estudios')" class="nav-item flex flex-col items-center gap-1 p-2 transition-all duration-300 active:scale-95 text-slate-400" id="nav-estudios">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+            <span class="text-[10px] font-medium">Estudios</span>
+        </button>
+        <button onclick="switchView('revisitas')" class="nav-item flex flex-col items-center gap-1 p-2 transition-all duration-300 active:scale-95 text-slate-400" id="nav-revisitas">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <span class="text-[10px] font-medium">Revisitas</span>
+        </button>
+        <button onclick="switchView('stats')" class="nav-item flex flex-col items-center gap-1 p-2 transition-all duration-300 active:scale-95 text-slate-400" id="nav-stats">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            <span class="text-[10px] font-medium">Análisis</span>
+        </button>
+        <button onclick="switchView('ajustes')" class="nav-item flex flex-col items-center gap-1 p-2 transition-all duration-300 active:scale-95 text-slate-400" id="nav-ajustes">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <span class="text-[10px] font-medium">Más</span>
+        </button>
+    </nav>
+
+    <div id="modal-container" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden"></div>
+    <div id="notification-overlay" class="fixed top-4 left-1/2 -translate-x-1/2 z-[60] transform scale-0 transition-transform duration-300">
+        <div class="bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3">
+            <span id="notification-text">Registrado con éxito</span>
+        </div>
+    </div>
+
+    <!-- NUEVO: Notificación persistente del cronómetro (se muestra cuando está en segundo plano) -->
+    <div id="chrono-background-notification" class="fixed top-4 right-4 z-[70] bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 transform scale-0 transition-transform duration-300">
+        <div class="w-3 h-3 bg-accent rounded-full animate-pulse"></div>
+        <span id="chrono-bg-time" class="font-bold tabular-nums text-lg">00:00:00</span>
+        <span class="text-xs text-slate-400">en curso</span>
+    </div>
+
+    <script>
+        // --- APP STATE & STORAGE ---
+        const STORAGE_KEY = 'TiempoCampoPro_v3_State';
+
+        let state = {
+            userSettings: {
+                userType: 'Regular',
+                annualGoal: 600,
+                monthlyGoal: 50,
+                weeklyGoal: 12.5,
+            },
+            dailyRecords: [],
+            studies: [],
+            revisits: [],
+            chronometer: {
+                accumulatedMs: 0,
+                startTime: null,
+                state: 'Stopped',
+            },
+            appVersion: '3.0.0',
+            lastBackupDate: null,
+        };
+
+        let chronoInterval = null;
+        let currentView = 'hoy';
+        let historialFilterMonth = null;
+        let historialSearchTerm = '';
+        let fullscreenActivated = false;
+
+        // NUEVO: Variables para el time picker y wake lock
+        let _timePickerMinutes = 0;
+        let wakeLock = null;
+        let wakeLockSupported = false;
+        let chronoNotificationInterval = null;
+        let notificationsPermission = 'default';
+
+        // --- CORE UTILS ---
+        function saveState() {
+            state.lastBackupDate = getDateStr(new Date());
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    state = { ...state, ...parsed };
+                    if (!state.chronometer.accumulatedMs && state.chronometer.accumulatedMs !== 0) state.chronometer
+                        .accumulatedMs = 0;
+                    if (!state.chronometer.startTime) state.chronometer.startTime = null;
+                    if (!state.chronometer.state) state.chronometer.state = 'Stopped';
+                    if (!state.appVersion) state.appVersion = '3.0.0';
+                    if (!state.userSettings.weeklyGoal) state.userSettings.weeklyGoal = state.userSettings.monthlyGoal / 4;
+                } catch (e) { console.error(e); }
+            }
+            if (!state.dailyRecords) state.dailyRecords = [];
+            if (!state.studies) state.studies = [];
+            if (!state.revisits) state.revisits = [];
+            state.revisits.forEach(r => {
+                if (!r.plannedVisitDate) r.plannedVisitDate = null;
+                if (!r.priority) r.priority = 'Normal';
+            });
+            state.dailyRecords.forEach(r => {
+                if (!r.attendedStudies) r.attendedStudies = [];
+                if (!r.attendedRevisits) r.attendedRevisits = [];
+            });
+
+            // NUEVO: Si el cronómetro estaba corriendo al recargar, recalcular el tiempo acumulado
+            if (state.chronometer.state === 'Running' && state.chronometer.startTime) {
+                const elapsed = Date.now() - state.chronometer.startTime;
+                state.chronometer.accumulatedMs += elapsed;
+                state.chronometer.startTime = Date.now(); // Reiniciar startTime para seguir corriendo
+                // Lo dejamos en Running para que el intervalo lo retome
+            }
+        }
+
+        function notify(msg) {
+            const el = document.getElementById('notification-overlay');
+            const text = document.getElementById('notification-text');
+            text.innerText = msg;
+            el.classList.remove('scale-0');
+            el.classList.add('scale-100');
+            setTimeout(() => {
+                el.classList.remove('scale-100');
+                el.classList.add('scale-0');
+            }, 2500);
+        }
+
+        function formatTime(ms) {
+            let totalSeconds = Math.floor(ms / 1000);
+            let hours = Math.floor(totalSeconds / 3600);
+            let minutes = Math.floor((totalSeconds % 3600) / 60);
+            let seconds = totalSeconds % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function getMinutesFromMs(ms) {
+            return Math.floor(ms / 60000);
+        }
+
+        function getServiceYearRange() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            let startYear = (month >= 8) ? year : year - 1;
+            let endYear = startYear + 1;
+            return {
+                start: new Date(startYear, 8, 1),
+                end: new Date(endYear, 7, 31)
+            };
+        }
+
+        function getDateStr(d) {
+            return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
+        }
+
+        function getMondayOfWeek(d) {
+            const date = new Date(d);
+            const day = date.getDay();
+            const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(date.setDate(diff));
+        }
+
+        function getWeekStr(d) {
+            const monday = getMondayOfWeek(d);
+            return getDateStr(monday);
+        }
+
+        // --- FULLSCREEN ---
+        function activateFullscreen() {
+            if (fullscreenActivated) return;
+            fullscreenActivated = true;
+            const hint = document.getElementById('fullscreen-hint');
+            if (hint) {
+                hint.style.opacity = '0';
+                hint.style.transition = 'opacity 0.3s';
+                setTimeout(() => hint.remove(), 300);
+            }
+            const doc = document.documentElement;
+            if (doc.requestFullscreen) {
+                doc.requestFullscreen().catch(() => {});
+            } else if (doc.webkitRequestFullscreen) {
+                doc.webkitRequestFullscreen();
+            } else if (doc.msRequestFullscreen) {
+                doc.msRequestFullscreen();
+            }
+        }
+
+        document.addEventListener('click', function fullscreenHandler(e) {
+            if (!fullscreenActivated) {
+                activateFullscreen();
+            }
+        }, { once: false });
+
+        document.addEventListener('touchstart', function fullscreenHandlerTouch(e) {
+            if (!fullscreenActivated) {
+                activateFullscreen();
+            }
+        }, { once: false });
+        // --- NAVIGATION ---
+        function switchView(viewId) {
+            currentView = viewId;
+            document.querySelectorAll('.nav-item').forEach(btn => btn.classList.add('text-slate-400'));
+            document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(`nav-${viewId}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-slate-400');
+                activeBtn.classList.add('active');
+            }
+            renderView();
+        }
+
+        function renderView() {
+            const container = document.getElementById('app-container');
+            container.innerHTML = '';
+            switch (currentView) {
+                case 'hoy':
+                    renderHoyView(container);
+                    break;
+                case 'registro':
+                    renderRegistroView(container);
+                    break;
+                case 'estudios':
+                    renderEstudiosView(container);
+                    break;
+                case 'revisitas':
+                    renderRevisitasView(container);
+                    break;
+                case 'stats':
+                    renderStatsView(container);
+                    break;
+                case 'ajustes':
+                    renderAjustesView(container);
+                    break;
+            }
+        }
+
+        // --- STREAK CALCULATION ---
+        function calculateStreak() {
+            if (state.dailyRecords.length === 0) return 0;
+            const sortedDates = [...new Set(state.dailyRecords.filter(r => r.totalMinutes > 0).map(r => r.date))].sort()
+                .reverse();
+            if (sortedDates.length === 0) return 0;
+            let streak = 0;
+            const today = getDateStr(new Date());
+            const yesterday = getDateStr(new Date(Date.now() - 86400000));
+            let checkDate = (sortedDates[0] === today || sortedDates[0] === yesterday) ? new Date(sortedDates[0] +
+                'T12:00:00') : null;
+            if (!checkDate) return 0;
+            const checkStr = getDateStr(checkDate);
+            if (checkStr !== today && checkStr !== yesterday) return 0;
+            for (let i = 0; i < sortedDates.length; i++) {
+                const d = new Date(sortedDates[i] + 'T12:00:00');
+                const expected = new Date(checkDate.getTime() - (streak * 86400000));
+                if (getDateStr(d) === getDateStr(expected)) {
+                    streak++;
+                } else if (i === 0) {
+                    continue;
+                } else {
+                    break;
+                }
+            }
+            return streak;
+        }
+
+        // --- HOY VIEW ---
+        function renderHoyView(container) {
+            const todayStr = getDateStr(new Date());
+            const todayRecord = state.dailyRecords.find(r => r.date === todayStr);
+            const totalMinutesToday = todayRecord ? todayRecord.totalMinutes : 0;
+            const streak = calculateStreak();
+            const weeklyHrs = getWeeklyHours();
+            const weeklyGoal = state.userSettings.weeklyGoal || (state.userSettings.monthlyGoal / 4);
+            let content = `
+                <div class="animate-slide-up">
+                    <div class="mb-6">
+                        <h2 class="text-3xl font-bold text-slate-800">Hola de nuevo</h2>
+                        <p class="text-slate-500 font-medium">${new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                        ${streak >= 3 ? `<div class="mt-2 inline-flex items-center gap-2 bg-accent/10 text-accent px-3 py-1.5 rounded-full"><span class="text-xl">🔥</span><span class="text-sm font-bold">¡${streak} días de racha!</span></div>` : ''}
+                    </div>
+                    <div class="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 mb-6 flex flex-col items-center">
+                        <span class="text-slate-400 font-bold uppercase tracking-tighter text-xs mb-2">Actividad en curso</span>
+                        <div id="chrono-display" class="text-6xl font-black text-slate-800 mb-8 tabular-nums">00:00:00</div>
+                        <div class="flex gap-4 w-full flex-wrap">
+                            <button id="chrono-start-btn" onclick="startChrono()" class="flex-1 min-w-[80px] bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all">Iniciar</button>
+                            <button id="chrono-pause-btn" onclick="pauseChrono()" class="hidden flex-1 min-w-[80px] bg-amber-500 text-white py-4 rounded-2xl font-bold shadow-lg shadow-amber-500/20 active:scale-95 transition-all">Pausar</button>
+                            <button id="chrono-stop-btn" onclick="stopChrono()" class="hidden flex-1 min-w-[80px] bg-slate-800 text-white py-4 rounded-2xl font-bold active:scale-95 transition-all">Detener</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
+                            <p class="text-slate-400 text-xs font-bold uppercase mb-1">Hoy</p>
+                            <p class="text-2xl font-bold text-slate-800">${(totalMinutesToday / 60).toFixed(1)} <span class="text-sm font-medium text-slate-400">hrs</span></p>
+                        </div>
+                        <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
+                            <p class="text-slate-400 text-xs font-bold uppercase mb-1">Esta Semana</p>
+                            <p class="text-2xl font-bold text-slate-800">${weeklyHrs.toFixed(1)} <span class="text-sm font-medium text-slate-400">/ ${weeklyGoal.toFixed(1)}</span></p>
+                        </div>
+                        <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
+                            <p class="text-slate-400 text-xs font-bold uppercase mb-1">Mensual</p>
+                            <p class="text-2xl font-bold text-slate-800">${getMonthlyHours().toFixed(1)} <span class="text-sm font-medium text-slate-400">/ ${state.userSettings.monthlyGoal}</span></p>
+                        </div>
+                        <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
+                            <p class="text-slate-400 text-xs font-bold uppercase mb-1">Racha</p>
+                            <p class="text-2xl font-bold text-slate-800">${streak} <span class="text-sm font-medium text-slate-400">días</span></p>
+                        </div>
+                    </div>
+                    <div class="bg-primary/5 rounded-3xl p-6 border border-primary/10">
+                        <h3 class="font-bold text-primary mb-4">Plan para hoy</h3>
+                        <div id="today-plan-list" class="space-y-3"></div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = content;
+            updateChronoUI();
+            renderTodayPlan();
+        }
+
+        function renderTodayPlan() {
+            const planList = document.getElementById('today-plan-list');
+            if (!planList) return;
+            const todayStr = getDateStr(new Date());
+            const plannedStudies = state.studies.filter(s => s.sessions?.some(ses => ses.date === todayStr));
+            const plannedRevisits = state.revisits.filter(r => r.plannedVisitDate === todayStr);
+            if (plannedStudies.length === 0 && plannedRevisits.length === 0) {
+                planList.innerHTML =
+                    `<p class="text-slate-400 text-sm">No hay planes específicos para hoy. ¡Añade estudios o revisitas!</p>`;
+                return;
+            }
+            planList.innerHTML = '';
+            plannedStudies.forEach(s => {
+                planList.innerHTML +=
+                    `<div class="flex items-center gap-3 bg-white p-3 rounded-2xl"><div class="w-2 h-2 bg-accent rounded-full"></div><span class="text-sm font-semibold text-slate-700">${s.name} (Estudio)</span></div>`;
+            });
+            plannedRevisits.forEach(r => {
+                planList.innerHTML +=
+                    `<div class="flex items-center gap-3 bg-white p-3 rounded-2xl"><div class="w-2 h-2 bg-primary rounded-full"></div><span class="text-sm font-semibold text-slate-700">${r.nameOrReference} (Revisita)</span></div>`;
+            });
+        }
+
+        function getWeeklyHours() {
+            const now = new Date();
+            const monday = getMondayOfWeek(now);
+            const sunday = new Date(monday.getTime() + 6 * 86400000);
+            return state.dailyRecords.filter(r => {
+                const d = new Date(r.date + 'T12:00:00');
+                return d >= monday && d <= sunday;
+            }).reduce((acc, curr) => acc + (curr.totalMinutes / 60), 0);
+        }
+
+        // --- NUEVO: Funciones de Time Picker tipo reloj ---
+        function generateTimePickerHtml(currentMinutes = 0) {
+            const hours = Math.floor(currentMinutes / 60);
+            const mins = currentMinutes % 60;
+            _timePickerMinutes = currentMinutes;
+            return `
+                <div class="flex items-center justify-center gap-3 my-2">
+                    <div class="flex flex-col items-center">
+                        <button type="button" onclick="adjustTimePicker('hours', 1)" class="time-picker-btn w-14 h-12 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-600 font-bold text-lg transition-all select-none">+</button>
+                        <div id="time-picker-hours" class="time-picker-display text-5xl font-black text-slate-800 my-2 w-20 text-center select-none">${hours.toString().padStart(2,'0')}</div>
+                        <button type="button" onclick="adjustTimePicker('hours', -1)" class="time-picker-btn w-14 h-12 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-600 font-bold text-lg transition-all select-none">−</button>
+                        <span class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Horas</span>
+                    </div>
+                    <div class="text-5xl font-black text-slate-300 mb-6 select-none">:</div>
+                    <div class="flex flex-col items-center">
+                        <button type="button" onclick="adjustTimePicker('minutes', 5)" class="time-picker-btn w-14 h-12 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-600 font-bold text-lg transition-all select-none">+</button>
+                        <div id="time-picker-minutes" class="time-picker-display text-5xl font-black text-slate-800 my-2 w-20 text-center select-none">${mins.toString().padStart(2,'0')}</div>
+                        <button type="button" onclick="adjustTimePicker('minutes', -5)" class="time-picker-btn w-14 h-12 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-600 font-bold text-lg transition-all select-none">−</button>
+                        <span class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Min</span>
+                    </div>
+                </div>
+                <p class="text-center text-xs text-slate-400 mt-1">Total: <span id="time-picker-total" class="font-bold text-slate-600">${hours}h ${mins}m</span></p>
+            `;
+        }
+
+        function adjustTimePicker(unit, delta) {
+            let hours = parseInt(document.getElementById('time-picker-hours')?.textContent || '0');
+            let minutes = parseInt(document.getElementById('time-picker-minutes')?.textContent || '0');
+
+            if (unit === 'hours') {
+                hours = Math.max(0, Math.min(23, hours + delta));
+            } else if (unit === 'minutes') {
+                minutes += delta;
+                if (minutes >= 60) {
+                    minutes -= 60;
+                    hours = Math.min(23, hours + 1);
+                } else if (minutes < 0) {
+                    minutes += 60;
+                    hours = Math.max(0, hours - 1);
+                }
+                minutes = Math.max(0, Math.min(59, minutes));
+                // Redondear a múltiplos de 5 para mantener consistencia con los botones
+                minutes = Math.round(minutes / 5) * 5;
+                if (minutes === 60) {
+                    minutes = 0;
+                    hours = Math.min(23, hours + 1);
+                }
+            }
+
+            _timePickerMinutes = hours * 60 + minutes;
+
+            const hoursEl = document.getElementById('time-picker-hours');
+            const minsEl = document.getElementById('time-picker-minutes');
+            const totalEl = document.getElementById('time-picker-total');
+            if (hoursEl) hoursEl.textContent = hours.toString().padStart(2, '0');
+            if (minsEl) minsEl.textContent = minutes.toString().padStart(2, '0');
+            if (totalEl) totalEl.textContent = `${hours}h ${minutes}m`;
+        }
+
+        function getTimePickerTotalMinutes() {
+            return _timePickerMinutes;
+        }
+
+        function setTimePickerMinutes(minutes) {
+            _timePickerMinutes = Math.max(0, minutes);
+            const hours = Math.floor(_timePickerMinutes / 60);
+            const mins = _timePickerMinutes % 60;
+            const hoursEl = document.getElementById('time-picker-hours');
+            const minsEl = document.getElementById('time-picker-minutes');
+            const totalEl = document.getElementById('time-picker-total');
+            if (hoursEl) hoursEl.textContent = hours.toString().padStart(2, '0');
+            if (minsEl) minsEl.textContent = mins.toString().padStart(2, '0');
+            if (totalEl) totalEl.textContent = `${hours}h ${mins}m`;
+        }
+
+        // --- NUEVO: Wake Lock para mantener el cronómetro activo ---
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                wakeLockSupported = true;
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => {
+                        // Si se liberó y el cronómetro sigue corriendo, intentar readquirir
+                        if (state.chronometer.state === 'Running') {
+                            requestWakeLock();
+                        }
+                    });
+                } catch (err) {
+                    console.log('Wake Lock no disponible:', err);
+                }
+            }
+        }
+
+        async function releaseWakeLock() {
+            if (wakeLock) {
+                try {
+                    await wakeLock.release();
+                    wakeLock = null;
+                } catch (err) {
+                    console.log('Error al liberar Wake Lock:', err);
+                }
+            }
+        }
+
+        // --- NUEVO: Solicitar permiso de notificaciones ---
+        async function requestNotificationPermission() {
+            if ('Notification' in window && notificationsPermission === 'default') {
+                const result = await Notification.requestPermission();
+                notificationsPermission = result;
+            }
+        }
+
+        // --- NUEVO: Mostrar notificación del cronómetro en segundo plano ---
+        function showChronoBackgroundNotification() {
+            if (state.chronometer.state !== 'Running') return;
+            const totalMs = state.chronometer.accumulatedMs + (state.chronometer.startTime ? (Date.now() - state
+                .chronometer.startTime) : 0);
+            const timeStr = formatTime(totalMs);
+
+            // Actualizar el badge flotante
+            const bgNotif = document.getElementById('chrono-background-notification');
+            const bgTime = document.getElementById('chrono-bg-time');
+            if (bgNotif && bgTime) {
+                bgTime.textContent = timeStr;
+                bgNotif.classList.remove('scale-0');
+                bgNotif.classList.add('scale-100');
+            }
+
+            // Intentar mostrar notificación del sistema si hay permiso
+            if (notificationsPermission === 'granted' && document.hidden) {
+                try {
+                    // Cancelar notificaciones anteriores del cronómetro
+                    if (window._chronoNotification) {
+                        window._chronoNotification.close();
+                    }
+                    window._chronoNotification = new Notification('⏱️ Cronómetro activo', {
+                        body: `Tiempo en curso: ${timeStr}`,
+                        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%231A73E8"/><text x="50" y="55" text-anchor="middle" fill="white" font-size="40" font-weight="bold">T</text></svg>',
+                        tag: 'chrono-notification',
+                        requireInteraction: false,
+                        silent: true,
+                    });
+                } catch (e) {
+                    // Fallback silencioso
+                }
+            }
+        }
+
+        function hideChronoBackgroundNotification() {
+            const bgNotif = document.getElementById('chrono-background-notification');
+            if (bgNotif) {
+                bgNotif.classList.remove('scale-100');
+                bgNotif.classList.add('scale-0');
+            }
+            if (window._chronoNotification) {
+                window._chronoNotification.close();
+                window._chronoNotification = null;
+            }
+            if (chronoNotificationInterval) {
+                clearInterval(chronoNotificationInterval);
+                chronoNotificationInterval = null;
+            }
+        }
+
+        // --- NUEVO: Manejo de visibilidad de la página ---
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                // La página pasa a segundo plano
+                if (state.chronometer.state === 'Running') {
+                    // Iniciar notificaciones periódicas
+                    showChronoBackgroundNotification();
+                    chronoNotificationInterval = setInterval(() => {
+                        showChronoBackgroundNotification();
+                    }, 30000); // Cada 30 segundos
+                    // Guardar estado para persistencia
+                    saveState();
+                }
+            } else {
+                // La página vuelve a primer plano
+                hideChronoBackgroundNotification();
+                if (state.chronometer.state === 'Running') {
+                    // Recalcular el tiempo y actualizar UI
+                    updateChronoUI();
+                    // Re-solicitar wake lock
+                    requestWakeLock();
+                }
+            }
+        }
+
+        // --- CRONÓMETRO MEJORADO CON SOPORTE EN SEGUNDO PLANO ---
+        function startChrono() {
+            if (state.chronometer.state === 'Running') return;
+            if (state.chronometer.state === 'Paused') {
+                // Reanudar desde pausa
+                state.chronometer.startTime = Date.now();
+                state.chronometer.state = 'Running';
+                saveState();
+                updateChronoUI();
+                requestWakeLock();
+                requestNotificationPermission();
+                return;
+            }
+            // Estado Stopped: iniciar desde cero
+            state.chronometer.accumulatedMs = 0;
+            state.chronometer.startTime = Date.now();
+            state.chronometer.state = 'Running';
+            saveState();
+            updateChronoUI();
+            requestWakeLock();
+            requestNotificationPermission();
+        }
+
+        function pauseChrono() {
+            if (state.chronometer.state !== 'Running') return;
+            const elapsed = Date.now() - (state.chronometer.startTime || Date.now());
+            state.chronometer.accumulatedMs += elapsed;
+            state.chronometer.startTime = null;
+            state.chronometer.state = 'Paused';
+            saveState();
+            updateChronoUI();
+            releaseWakeLock();
+            hideChronoBackgroundNotification();
+        }
+
+        function stopChrono() {
+            if (state.chronometer.state === 'Stopped') return;
+            let totalMs = state.chronometer.accumulatedMs;
+            if (state.chronometer.state === 'Running' && state.chronometer.startTime) {
+                totalMs += (Date.now() - state.chronometer.startTime);
+            }
+            // Resetear el cronómetro antes de mostrar el modal
+            state.chronometer = { accumulatedMs: 0, startTime: null, state: 'Stopped' };
+            if (chronoInterval) clearInterval(chronoInterval);
+            saveState();
+            updateChronoUI();
+            releaseWakeLock();
+            hideChronoBackgroundNotification();
+            const totalMinutes = getMinutesFromMs(totalMs);
+            if (totalMinutes > 0) {
+                showSaveSessionModal(totalMinutes);
+            } else {
+                notify("No hay tiempo acumulado para guardar");
+            }
+        }
+
+        function updateChronoUI() {
+            const display = document.getElementById('chrono-display');
+            const startBtn = document.getElementById('chrono-start-btn');
+            const pauseBtn = document.getElementById('chrono-pause-btn');
+            const stopBtn = document.getElementById('chrono-stop-btn');
+            if (!display) return;
+            if (chronoInterval) clearInterval(chronoInterval);
+
+            if (state.chronometer.state === 'Running') {
+                startBtn.classList.add('hidden');
+                pauseBtn.classList.remove('hidden');
+                stopBtn.classList.remove('hidden');
+                chronoInterval = setInterval(() => {
+                    const elapsed = state.chronometer.accumulatedMs + (state.chronometer.startTime ? (Date
+                        .now() - state.chronometer.startTime) : 0);
+                    display.innerText = formatTime(elapsed);
+                    // Si está visible, ocultar badge de segundo plano
+                    if (!document.hidden) {
+                        hideChronoBackgroundNotification();
+                    }
+                }, 200);
+            } else if (state.chronometer.state === 'Paused') {
+                startBtn.classList.remove('hidden');
+                startBtn.innerText = "Reanudar";
+                pauseBtn.classList.add('hidden');
+                stopBtn.classList.remove('hidden');
+                display.innerText = formatTime(state.chronometer.accumulatedMs);
+            } else {
+                startBtn.classList.remove('hidden');
+                startBtn.innerText = "Iniciar";
+                pauseBtn.classList.add('hidden');
+                stopBtn.classList.add('hidden');
+                display.innerText = "00:00:00";
+            }
+        }
+
+        // --- REGISTRO / HISTORIAL ---
+        function renderRegistroView(container) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            const monthName = now.toLocaleDateString('es-ES', { month: 'long' });
+            let calendarHtml = `
+                <div class="animate-slide-up">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold text-slate-800 capitalize">${monthName} ${year}</h2>
+                        <div class="flex gap-2">
+                            <button onclick="changeCalendarMonth(-1)" class="p-2 bg-slate-100 rounded-xl text-slate-500 hover:bg-slate-200 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
+                            <button onclick="changeCalendarMonth(1)" class="p-2 bg-slate-100 rounded-xl text-slate-500 hover:bg-slate-200 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 mb-4">
+                        <div class="grid grid-cols-7 gap-1 text-center mb-4">
+                            ${['D','L','M','X','J','V','S'].map(d => `<div class="text-[10px] font-bold text-slate-300">${d}</div>`).join('')}
+                        </div>
+                        <div class="grid grid-cols-7 gap-1" id="calendar-grid"></div>
+                    </div>
+                    <div class="flex gap-2 mb-4">
+                        <button onclick="showHistorialTabla()" class="flex-1 py-3 rounded-2xl font-bold text-sm transition-all bg-primary text-white tab-btn active" id="tab-historial">📋 Tabla de Registros</button>
+                        <button onclick="showDayDetailPanel()" class="flex-1 py-3 rounded-2xl font-bold text-sm transition-all bg-slate-100 text-slate-500 tab-btn" id="tab-detalle">📅 Detalle Día</button>
+                    </div>
+                    <div id="historial-table-container" class="bg-white rounded-3xl p-4 shadow-sm border border-slate-100"></div>
+                    <div id="day-detail-panel" class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 hidden"></div>
+                </div>
+            `;
+            container.innerHTML = calendarHtml;
+            renderCalendarGrid(year, month);
+            renderHistorialTabla();
+            window._calendarYear = year;
+            window._calendarMonth = month;
+        }
+
+        function changeCalendarMonth(delta) {
+            let y = window._calendarYear || new Date().getFullYear();
+            let m = (window._calendarMonth || new Date().getMonth()) + delta;
+            if (m < 0) { m = 11;
+                y--; }
+            if (m > 11) { m = 0;
+                y++; }
+            window._calendarYear = y;
+            window._calendarMonth = m;
+            renderCalendarGrid(y, m);
+            const monthName = new Date(y, m, 1).toLocaleDateString('es-ES', { month: 'long' });
+            document.querySelector('#app-container h2').textContent = `${monthName} ${y}`;
+        }
+
+        function renderCalendarGrid(year, month) {
+            const grid = document.getElementById('calendar-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDay = new Date(year, month, 1).getDay();
+            for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div></div>`;
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${year}-${(month+1).toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
+                const record = state.dailyRecords.find(r => r.date === dateStr);
+                const hasData = record && record.totalMinutes > 0;
+                const isToday = getDateStr(new Date()) === dateStr;
+                grid.innerHTML += `
+                    <button onclick="showDayDetail('${dateStr}')" class="aspect-square flex flex-col items-center justify-center rounded-xl text-sm font-semibold transition-all ${isToday ? 'bg-primary/10 text-primary ring-2 ring-primary/20' : 'text-slate-600 hover:bg-slate-50'} ${hasData ? 'bg-accent/10 text-accent' : ''}">
+                        ${d}
+                        ${hasData ? '<div class="w-1 h-1 bg-accent rounded-full mt-1"></div>' : ''}
+                    </button>
+                `;
+            }
+        }
+
+        function renderHistorialTabla() {
+            const container = document.getElementById('historial-table-container');
+            if (!container) return;
+            let records = [...state.dailyRecords].sort((a, b) => b.date.localeCompare(a.date));
+            if (historialFilterMonth) {
+                records = records.filter(r => r.date.startsWith(historialFilterMonth));
+            }
+            if (historialSearchTerm) {
+                const term = historialSearchTerm.toLowerCase();
+                records = records.filter(r =>
+                    r.notes?.toLowerCase().includes(term) ||
+                    r.date.includes(term) ||
+                    (r.attendedStudies || []).some(sId => {
+                        const s = state.studies.find(st => st.id === sId);
+                        return s && s.name.toLowerCase().includes(term);
+                    }) ||
+                    (r.attendedRevisits || []).some(rId => {
+                        const rv = state.revisits.find(r => r.id === rId);
+                        return rv && rv.nameOrReference.toLowerCase().includes(term);
+                    })
+                );
+            }
+            const mesesDisponibles = [...new Set(state.dailyRecords.map(r => r.date.substring(0, 7)))].sort().reverse();
+            let html = `
+                <div class="flex gap-2 mb-3 flex-wrap">
+                    <input type="text" id="historial-search" placeholder="🔍 Buscar..." value="${historialSearchTerm}" oninput="historialSearchTerm=this.value; renderHistorialTabla();" class="flex-1 min-w-[120px] bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm">
+                    <select id="historial-filter-month" onchange="historialFilterMonth=this.value || null; renderHistorialTabla();" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm">
+                        <option value="">Todos los meses</option>
+                        ${mesesDisponibles.map(m => `<option value="${m}" ${historialFilterMonth === m ? 'selected' : ''}>${new Date(m+'-01').toLocaleDateString('es-ES', {month:'long', year:'numeric'})}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+            if (records.length === 0) {
+                html += `<p class="text-slate-400 text-center py-8">No hay registros que coincidan.</p>`;
+            } else {
+                html += `<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b border-slate-100 text-left text-[10px] font-bold text-slate-400 uppercase"><th class="py-2 px-1">Fecha</th><th class="py-2 px-1">Horas</th><th class="py-2 px-1">Estudios</th><th class="py-2 px-1">Revisitas</th><th class="py-2 px-1">Notas</th><th class="py-2 px-1"></th></tr></thead><tbody>`;
+                records.forEach(r => {
+                    const estudiosNombres = (r.attendedStudies || []).map(sId => {
+                        const s = state.studies.find(st => st.id === sId);
+                        return s ? s.name : '?';
+                    }).join(', ') || '-';
+                    const revisitasNombres = (r.attendedRevisits || []).map(rId => {
+                        const rv = state.revisits.find(r => r.id === rId);
+                        return rv ? rv.nameOrReference : '?';
+                    }).join(', ') || '-';
+                    html += `
+                        <tr class="border-b border-slate-50 hover:bg-slate-50 transition cursor-pointer" onclick="showDayDetail('${r.date}')">
+                            <td class="py-2 px-1 font-semibold">${new Date(r.date+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</td>
+                            <td class="py-2 px-1 font-bold">${(r.totalMinutes/60).toFixed(1)}h</td>
+                            <td class="py-2 px-1 text-xs">${estudiosNombres}</td>
+                            <td class="py-2 px-1 text-xs">${revisitasNombres}</td>
+                            <td class="py-2 px-1 text-xs text-slate-400 max-w-[120px] truncate">${r.notes || '-'}</td>
+                            <td class="py-2 px-1"><button onclick="event.stopPropagation(); editDay('${r.date}')" class="text-primary text-xs font-bold">Editar</button></td>
+                        </tr>
+                    `;
+                });
+                html += `</tbody></table></div>`;
+                html +=
+                    `<p class="text-xs text-slate-400 mt-3 text-center">${records.length} registro(s) · Total: ${records.reduce((a,r)=>a+r.totalMinutes/60,0).toFixed(1)} hrs</p>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function showHistorialTabla() {
+            document.getElementById('historial-table-container')?.classList.remove('hidden');
+            document.getElementById('day-detail-panel')?.classList.add('hidden');
+            document.getElementById('tab-historial')?.classList.add('bg-primary', 'text-white');
+            document.getElementById('tab-historial')?.classList.remove('bg-slate-100', 'text-slate-500');
+            document.getElementById('tab-detalle')?.classList.add('bg-slate-100', 'text-slate-500');
+            document.getElementById('tab-detalle')?.classList.remove('bg-primary', 'text-white');
+            renderHistorialTabla();
+        }
+
+        function showDayDetailPanel() {
+            document.getElementById('historial-table-container')?.classList.add('hidden');
+            document.getElementById('day-detail-panel')?.classList.remove('hidden');
+            document.getElementById('tab-detalle')?.classList.add('bg-primary', 'text-white');
+            document.getElementById('tab-detalle')?.classList.remove('bg-slate-100', 'text-slate-500');
+            document.getElementById('tab-historial')?.classList.add('bg-slate-100', 'text-slate-500');
+            document.getElementById('tab-historial')?.classList.remove('bg-primary', 'text-white');
+        }
+
+        function showDayDetail(dateStr) {
+            showDayDetailPanel();
+            const panel = document.getElementById('day-detail-panel');
+            if (!panel) return;
+            panel.classList.remove('hidden');
+            const record = state.dailyRecords.find(r => r.date === dateStr) || { totalMinutes: 0, revisitsCount: 0,
+                studySessionsCount: 0, notes: '', attendedStudies: [], attendedRevisits: [] };
+            const estudiosNombres = (record.attendedStudies || []).map(sId => {
+                const s = state.studies.find(st => st.id === sId);
+                return s ? s.name : 'Desconocido';
+            }).join('<br>') || 'Ninguno';
+            const revisitasNombres = (record.attendedRevisits || []).map(rId => {
+                const rv = state.revisits.find(r => r.id === rId);
+                return rv ? rv.nameOrReference : 'Desconocido';
+            }).join('<br>') || 'Ninguna';
+            panel.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <div><h3 class="font-bold text-slate-800">Detalles del día</h3><p class="text-slate-400 text-xs">${new Date(dateStr+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p></div>
+                    <button onclick="editDay('${dateStr}')" class="text-primary text-xs font-bold px-3 py-1 bg-primary/5 rounded-full">Editar</button>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-50 p-4 rounded-2xl"><p class="text-[10px] font-bold text-slate-400 uppercase">Tiempo</p><p class="text-xl font-bold">${(record.totalMinutes / 60).toFixed(1)} hrs</p></div>
+                    <div class="bg-slate-50 p-4 rounded-2xl"><p class="text-[10px] font-bold text-slate-400 uppercase">Revisitas</p><p class="text-xl font-bold">${(record.attendedRevisits?.length || 0)}</p></div>
+                </div>
+                <div class="mt-4 bg-slate-50 p-4 rounded-2xl"><p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Estudios</p><p class="text-sm font-semibold">${estudiosNombres}</p></div>
+                <div class="mt-4 bg-slate-50 p-4 rounded-2xl"><p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Revisitas atendidas</p><p class="text-sm font-semibold">${revisitasNombres}</p></div>
+                ${record.notes ? `<div class="mt-4 text-sm text-slate-600 italic bg-slate-50 p-4 rounded-2xl">📝 "${record.notes}"</div>` : ''}
+            `;
+            panel.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // --- MODIFICADO: editDay ahora usa el time picker tipo reloj ---
+        function editDay(dateStr) {
+            let record = state.dailyRecords.find(r => r.date === dateStr) || { totalMinutes: 0, notes: '',
+                attendedStudies: [], attendedRevisits: [] };
+            _timePickerMinutes = record.totalMinutes || 0;
+            const modal = document.getElementById('modal-container');
+            modal.classList.remove('hidden');
+            modal.innerHTML = `
+                <div class="bg-white rounded-3xl w-full max-w-sm p-6 animate-slide-up shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">Editar Registro: ${new Date(dateStr+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase block mb-2 text-center">⏱️ Tiempo exacto</label>
+                            ${generateTimePickerHtml(record.totalMinutes || 0)}
+                        </div>
+                        <div><label class="text-[10px] font-bold text-slate-400 uppercase">Estudios atendidos</label><div class="flex flex-wrap gap-2 mt-2" id="edit-studies-list"></div></div>
+                        <div><label class="text-[10px] font-bold text-slate-400 uppercase">Revisitas atendidas</label><div class="flex flex-wrap gap-2 mt-2" id="edit-revisits-list"></div></div>
+                        <div><label class="text-[10px] font-bold text-slate-400 uppercase">Notas</label><textarea id="edit-day-notes" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm">${record.notes || ''}</textarea></div>
+                    </div>
+                    <div class="flex gap-3 mt-6">
+                        <button onclick="closeModal()" class="flex-1 py-4 font-bold text-slate-400">Cancelar</button>
+                        <button onclick="deleteDayRecord('${dateStr}')" class="py-4 px-3 bg-danger/10 text-danger rounded-2xl font-bold">Eliminar</button>
+                        <button onclick="saveEditedDay('${dateStr}')" class="flex-[2] bg-primary text-white py-4 rounded-2xl font-bold">Guardar</button>
+                    </div>
+                </div>
+            `;
+            const studiesDiv = document.getElementById('edit-studies-list');
+            studiesDiv.innerHTML = '';
+            state.studies.forEach(s => {
+                const isAttended = record.attendedStudies?.includes(s.id);
+                studiesDiv.innerHTML +=
+                    `<button onclick="this.classList.toggle('bg-accent'); this.classList.toggle('text-white');" data-id="${s.id}" class="study-chip text-xs font-bold border border-slate-200 px-3 py-2 rounded-xl transition-colors ${isAttended ? 'bg-accent text-white' : ''}">${s.name}</button>`;
+            });
+            const revisitsDiv = document.getElementById('edit-revisits-list');
+            revisitsDiv.innerHTML = '';
+            state.revisits.forEach(r => {
+                const isAttended = record.attendedRevisits?.includes(r.id);
+                revisitsDiv.innerHTML +=
+                    `<button onclick="this.classList.toggle('bg-accent'); this.classList.toggle('text-white');" data-id="${r.id}" class="revisit-chip text-xs font-bold border border-slate-200 px-3 py-2 rounded-xl transition-colors ${isAttended ? 'bg-accent text-white' : ''}">${r.nameOrReference}</button>`;
+            });
+        }
+
+        function saveEditedDay(dateStr) {
+            const minutes = getTimePickerTotalMinutes();
+            const notes = document.getElementById('edit-day-notes').value;
+            const studyChips = document.querySelectorAll('#edit-studies-list .study-chip.bg-accent');
+            const attendedStudies = Array.from(studyChips).map(c => c.dataset.id);
+            const revisitChips = document.querySelectorAll('#edit-revisits-list .revisit-chip.bg-accent');
+            const attendedRevisits = Array.from(revisitChips).map(c => c.dataset.id);
+            let recordIndex = state.dailyRecords.findIndex(r => r.date === dateStr);
+            if (recordIndex !== -1) {
+                state.dailyRecords[recordIndex] = { ...state.dailyRecords[recordIndex], totalMinutes: minutes, notes,
+                    attendedStudies, attendedRevisits, revisitsCount: attendedRevisits.length,
+                    studySessionsCount: attendedStudies.length };
+            } else {
+                state.dailyRecords.push({ date: dateStr, totalMinutes: minutes, notes, attendedStudies,
+                    attendedRevisits, revisitsCount: attendedRevisits.length, studySessionsCount: attendedStudies
+                    .length });
+            }
+            saveState();
+            closeModal();
+            notify("✅ Registro actualizado");
+            renderView();
+            if (currentView === 'registro') showDayDetail(dateStr);
+        }
+
+        function deleteDayRecord(dateStr) {
+            if (confirm("¿Eliminar todo el registro de este día?")) {
+                state.dailyRecords = state.dailyRecords.filter(r => r.date !== dateStr);
+                saveState();
+                closeModal();
+                notify("🗑️ Día eliminado");
+                renderView();
+            }
+        }
+
+        // --- ESTUDIOS ---
+        function renderEstudiosView(container) {
+            let content = `
+                <div class="animate-slide-up">
+                    <div class="flex justify-between items-end mb-6">
+                        <div><h2 class="text-2xl font-bold text-slate-800">Tus Estudios</h2><p class="text-slate-500 text-sm">Gestiona el progreso del curso</p></div>
+                        <button onclick="showAddStudyModal()" class="bg-primary text-white p-3 rounded-2xl shadow-lg shadow-primary/20"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></button>
+                    </div>
+                    <div class="space-y-4">${state.studies.length === 0 ? '<div class="text-center py-12"><p class="text-slate-400">No tienes estudios registrados aún.</p></div>' : state.studies.map(study => {
+                        const lastSession = study.sessions?.[study.sessions.length - 1];
+                        const currentLesson = lastSession ? lastSession.lesson : 1;
+                        const progress = Math.min(100, (currentLesson / 60) * 100);
+                        return `
+                            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 relative group">
+                                <button onclick="deleteStudy('${study.id}')" class="absolute top-3 right-3 text-slate-300 hover:text-danger transition p-1 z-10" title="Eliminar estudio">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                                <div onclick="openStudyDetail('${study.id}')" class="cursor-pointer">
+                                    <div class="flex justify-between items-start mb-4"><div><h3 class="font-bold text-slate-800 text-lg">${study.name}</h3><p class="text-slate-400 text-xs">Inició el ${study.startDate}</p></div><div class="bg-accent/10 text-accent px-3 py-1 rounded-full text-xs font-bold">Lección ${currentLesson}/60</div></div>
+                                    <div class="w-full bg-slate-100 h-2 rounded-full mb-2"><div class="bg-accent h-2 rounded-full transition-all duration-500" style="width: ${progress}%"></div></div>
+                                    <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase"><span>Progreso</span><span>${Math.round(progress)}%</span></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}</div>
+                </div>
+            `;
+            container.innerHTML = content;
+        }
+
+        function deleteStudy(id) {
+            if (confirm("¿Eliminar este estudio permanentemente? También se borrará de todos los registros diarios.")) {
+                state.studies = state.studies.filter(s => s.id !== id);
+                state.dailyRecords.forEach(record => {
+                    record.attendedStudies = (record.attendedStudies || []).filter(studyId => studyId !== id);
+                });
+                saveState();
+                notify("🗑️ Estudio eliminado");
+                renderView();
+            }
+        }
+
+        function showAddStudyModal() {
+            const modal = document.getElementById('modal-container');
+            modal.classList.remove('hidden');
+            modal.innerHTML = `
+                <div class="bg-white rounded-3xl w-full max-w-sm p-6 animate-slide-up shadow-2xl">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">Nuevo Estudio</h3>
+                    <div class="space-y-4"><input type="text" id="new-study-name" placeholder="Nombre completo" class="w-full bg-slate-50 border-none rounded-2xl p-4 font-semibold"><textarea id="new-study-notes" placeholder="Notas iniciales" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm"></textarea></div>
+                    <div class="flex gap-3 mt-6"><button onclick="closeModal()" class="flex-1 py-4 font-bold text-slate-400">Cancelar</button><button onclick="saveNewStudy()" class="flex-[2] bg-primary text-white py-4 rounded-2xl font-bold">Añadir</button></div>
+                </div>
+            `;
+        }
+
+        function saveNewStudy() {
+            const name = document.getElementById('new-study-name').value;
+            if (!name) return alert("Nombre requerido");
+            state.studies.push({ id: Date.now().toString(), name, startDate: getDateStr(new Date()), notes: document
+                    .getElementById('new-study-notes').value, status: 'Active', sessions: [],
+                bookBeingStudied: { title: "Disfrute de la vida para siempre", totalLessons: 60 } });
+            saveState();
+            closeModal();
+            notify("✅ Estudio añadido");
+            renderView();
+        }
+
+        function openStudyDetail(id) {
+            const study = state.studies.find(s => s.id === id);
+            if (!study) return;
+            const lastSession = study.sessions?.[study.sessions.length - 1];
+            const currentLesson = lastSession ? lastSession.lesson : 1;
+            const modal = document.getElementById('modal-container');
+            modal.classList.remove('hidden');
+            modal.innerHTML = `
+                <div class="bg-white rounded-3xl w-full max-w-sm p-6 animate-slide-up shadow-2xl max-h-[80vh] overflow-y-auto">
+                    <div class="flex justify-between items-start mb-6"><h3 class="text-2xl font-bold text-slate-800">${study.name}</h3><button onclick="closeModal()" class="text-slate-300"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>
+                    <div class="space-y-6">
+                        <div class="bg-slate-50 p-4 rounded-2xl"><label class="text-[10px] font-bold text-slate-400 uppercase">Lección Actual</label><div class="flex items-center gap-4 mt-2"><input type="number" id="edit-lesson" value="${currentLesson}" min="1" max="60" class="w-20 bg-white border border-slate-200 rounded-xl p-2 font-bold text-center"><span class="text-sm font-medium text-slate-500">de 60 lecciones</span></div></div>
+                        <div><label class="text-[10px] font-bold text-slate-400 uppercase">Detalle última sesión</label><input type="text" id="edit-leftoff" value="${lastSession ? lastSession.whereLeftOff : ''}" placeholder="Ej: Párrafo 4" class="w-full mt-1 bg-slate-50 border-none rounded-xl p-3 text-sm"></div>
+                        <div><label class="text-[10px] font-bold text-slate-400 uppercase">Pasos Siguientes</label><textarea id="edit-nextsteps" class="w-full mt-1 bg-slate-50 border-none rounded-xl p-3 text-sm">${lastSession ? lastSession.nextSteps : ''}</textarea></div>
+                    </div>
+                    <div class="mt-8 flex gap-3"><button onclick="deleteStudy('${study.id}')" class="flex-1 bg-danger/10 text-danger py-3 rounded-xl font-bold">🗑️ Eliminar</button><button onclick="updateStudyProgress('${study.id}')" class="flex-[2] bg-accent text-white py-3 rounded-xl font-bold">Guardar avance</button></div>
+                </div>
+            `;
+        }
+
+        function updateStudyProgress(id) {
+            const lesson = parseInt(document.getElementById('edit-lesson').value);
+            const leftOff = document.getElementById('edit-leftoff').value;
+            const nextSteps = document.getElementById('edit-nextsteps').value;
+            const study = state.studies.find(s => s.id === id);
+            if (study) {
+                study.sessions = study.sessions || [];
+                study.sessions.push({ date: getDateStr(new Date()), lesson, whereLeftOff: leftOff, nextSteps:
+                        nextSteps });
+                saveState();
+                closeModal();
+                notify("✅ Progreso actualizado");
+                renderView();
+            }
+        }
+
+        // --- REVISITAS ---
+        function renderRevisitasView(container) {
+            let content = `
+                <div class="animate-slide-up">
+                    <div class="flex justify-between items-end mb-6"><div><h2 class="text-2xl font-bold text-slate-800">Revisitas</h2><p class="text-slate-500 text-sm">Control de visitas pendientes</p></div><button onclick="showAddRevisitaModal()" class="bg-primary text-white p-3 rounded-2xl shadow-lg shadow-primary/20"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></button></div>
+                    <div class="space-y-4">${state.revisits.length === 0 ? '<div class="text-center py-12"><p class="text-slate-400">No tienes revisitas registradas.</p></div>' : state.revisits.map(rev => `
+                        <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 relative group">
+                            <button onclick="deleteRevisita('${rev.id}')" class="absolute top-3 right-3 text-slate-300 hover:text-danger transition p-1 z-10" title="Eliminar revisita">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                            <div onclick="openRevisitaDetail('${rev.id}')" class="cursor-pointer">
+                                <div class="flex justify-between items-start mb-2"><h3 class="font-bold text-slate-800">${rev.nameOrReference}</h3><span class="text-[10px] font-bold px-2 py-1 rounded-md ${rev.priority === 'High' ? 'bg-danger/10 text-danger' : 'bg-slate-100 text-slate-400'}">${rev.priority === 'High' ? 'Prioridad Alta' : 'Normal'}</span></div>
+                                <p class="text-slate-500 text-sm mb-3">${rev.locationReference || 'Sin ubicación'}</p>
+                                <div class="flex items-center gap-2 text-slate-400 text-xs"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>Última visita: ${rev.lastVisitDate || 'Nunca'}</div>
+                                ${rev.plannedVisitDate ? `<div class="flex items-center gap-2 text-primary text-xs mt-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>Próxima: ${new Date(rev.plannedVisitDate+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</div>` : ''}
+                            </div>
+                        </div>
+                    `).join('')}</div>
+                </div>
+            `;
+            container.innerHTML = content;
+        }
+
+        function deleteRevisita(id) {
+            if (confirm("¿Eliminar esta revisita? También se eliminará de los registros diarios.")) {
+                state.revisits = state.revisits.filter(r => r.id !== id);
+                state.dailyRecords.forEach(record => {
+                    record.attendedRevisits = (record.attendedRevisits || []).filter(rid => rid !== id);
+                });
+                saveState();
+                notify("🗑️ Revisita eliminada");
+                renderView();
+            }
+        }
+
+        function showAddRevisitaModal() {
+            const modal = document.getElementById('modal-container');
+            modal.classList.remove('hidden');
+            modal.innerHTML = `
+                <div class="bg-white rounded-3xl w-full max-w-sm p-6 animate-slide-up shadow-2xl">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">Nueva Revisita</h3>
+                    <div class="space-y-4"><input type="text" id="new-rev-name" placeholder="Nombre o Referencia" class="w-full bg-slate-50 border-none rounded-2xl p-4 font-semibold"><input type="text" id="new-rev-loc" placeholder="Ubicación / Dirección" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm"><input type="date" id="new-rev-planned" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm"><select id="new-rev-priority" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-semibold"><option value="Normal">Prioridad Normal</option><option value="High">Prioridad Alta</option></select></div>
+                    <div class="flex gap-3 mt-6"><button onclick="closeModal()" class="flex-1 py-4 font-bold text-slate-400">Cancelar</button><button onclick="saveNewRevisita()" class="flex-[2] bg-primary text-white py-4 rounded-2xl font-bold">Añadir</button></div>
+                </div>
+            `;
+        }
+
+        function saveNewRevisita() {
+            const name = document.getElementById('new-rev-name').value;
+            if (!name) return alert("Referencia requerida");
+            state.revisits.push({ id: Date.now().toString(), nameOrReference: name, locationReference: document
+                    .getElementById('new-rev-loc').value, lastVisitDate: null, notes: '',
+                priority: document.getElementById('new-rev-priority').value, plannedVisitDate: document
+                    .getElementById('new-rev-planned').value || null });
+            saveState();
+            closeModal();
+            notify("✅ Revisita añadida");
+            renderView();
+        }
+
+        function openRevisitaDetail(id) {
+            const rev = state.revisits.find(r => r.id === id);
+            if (!rev) return;
+            const modal = document.getElementById('modal-container');
+            modal.classList.remove('hidden');
+            modal.innerHTML = `
+                <div class="bg-white rounded-3xl w-full max-w-sm p-6 animate-slide-up shadow-2xl">
+                    <div class="flex justify-between items-start mb-4"><h3 class="text-xl font-bold text-slate-800">${rev.nameOrReference}</h3><button onclick="closeModal()" class="text-slate-300"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>
+                    <div class="space-y-4"><input type="text" id="edit-rev-name" value="${rev.nameOrReference}" placeholder="Nombre" class="w-full bg-slate-50 border-none rounded-2xl p-4"><input type="text" id="edit-rev-loc" value="${rev.locationReference || ''}" placeholder="Ubicación" class="w-full bg-slate-50 border-none rounded-2xl p-4"><label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">🗓️ Última visita</label><input type="date" id="edit-rev-lastvisit" value="${rev.lastVisitDate || ''}" class="w-full bg-slate-50 border-none rounded-2xl p-4"><label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">🗓️ Próxima visita planificada</label><input type="date" id="edit-rev-planned" value="${rev.plannedVisitDate || ''}" class="w-full bg-slate-50 border-none rounded-2xl p-4"><select id="edit-rev-priority" class="w-full bg-slate-50 border-none rounded-2xl p-4"><option ${rev.priority === 'Normal' ? 'selected' : ''}>Normal</option><option ${rev.priority === 'High' ? 'selected' : ''}>High</option></select><textarea id="edit-rev-notes" placeholder="Notas" class="w-full bg-slate-50 border-none rounded-2xl p-4">${rev.notes || ''}</textarea></div>
+                    <div class="flex gap-3 mt-6"><button onclick="deleteRevisita('${rev.id}')" class="flex-1 bg-danger/10 text-danger py-3 rounded-xl font-bold">🗑️ Eliminar</button><button onclick="updateRevisita('${rev.id}')" class="flex-[2] bg-primary text-white py-3 rounded-xl font-bold">Guardar</button></div>
+                </div>
+            `;
+        }
+
+        function updateRevisita(id) {
+            const rev = state.revisits.find(r => r.id === id);
+            if (rev) {
+                rev.nameOrReference = document.getElementById('edit-rev-name').value;
+                rev.locationReference = document.getElementById('edit-rev-loc').value;
+                rev.lastVisitDate = document.getElementById('edit-rev-lastvisit').value || null;
+                rev.plannedVisitDate = document.getElementById('edit-rev-planned').value || null;
+                rev.priority = document.getElementById('edit-rev-priority').value;
+                rev.notes = document.getElementById('edit-rev-notes').value;
+                saveState();
+                closeModal();
+                notify("✅ Revisita actualizada");
+                renderView();
+            }
+        }
+
+        // --- STATS ---
+        function renderStatsView(container) {
+            const monthlyHrs = getMonthlyHours();
+            const annualHrs = getAnnualHours();
+            const monthlyGoal = state.userSettings.monthlyGoal;
+            const annualGoal = state.userSettings.annualGoal;
+            const monthlyProgress = Math.min(100, (monthlyHrs / monthlyGoal) * 100);
+            const annualProgress = Math.min(100, (annualHrs / annualGoal) * 100);
+            const revisitsThisMonth = getMonthlyRevisitsCount();
+            const streak = calculateStreak();
+            const last6MonthsData = getLast6MonthsData();
+            const barChartSvg = generateBarChartSvg(last6MonthsData, monthlyGoal);
+            container.innerHTML = `
+                <div class="animate-slide-up" id="stats-capture-area">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-slate-800">📊 Análisis de Progreso</h2>
+                    </div>
+                    <div id="capture-content" class="capture-area space-y-6" style="background-color: #f8fafc; padding: 0; border-radius: 0;">
+                        <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                            <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-slate-800">Meta Mensual</h3><span class="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold">${Math.round(monthlyProgress)}%</span></div>
+                            <div class="w-full bg-slate-100 h-4 rounded-full mb-4"><div class="bg-primary h-4 rounded-full transition-all duration-700" style="width: ${monthlyProgress}%"></div></div>
+                            <div class="grid grid-cols-2 gap-4"><div><p class="text-[10px] font-bold text-slate-400 uppercase">Registrado</p><p class="text-xl font-bold">${monthlyHrs.toFixed(1)} hrs</p></div><div><p class="text-[10px] font-bold text-slate-400 uppercase">Faltante</p><p class="text-xl font-bold">${Math.max(0, monthlyGoal - monthlyHrs).toFixed(1)} hrs</p></div></div>
+                        </div>
+                        <div class="bg-slate-800 rounded-3xl p-6 shadow-xl text-white"><div class="flex justify-between items-center mb-4"><h3 class="font-bold">Año de Servicio</h3><span class="bg-white/20 text-white px-3 py-1 rounded-full text-xs font-bold">${Math.round(annualProgress)}%</span></div><div class="w-full bg-white/10 h-4 rounded-full mb-4"><div class="bg-accent h-4 rounded-full transition-all duration-700" style="width: ${annualProgress}%"></div></div><div class="grid grid-cols-2 gap-4"><div><p class="text-[10px] font-bold text-white/40 uppercase">Acumulado</p><p class="text-xl font-bold">${annualHrs.toFixed(1)} hrs</p></div><div><p class="text-[10px] font-bold text-white/40 uppercase">Objetivo</p><p class="text-xl font-bold">${annualGoal} hrs</p></div></div></div>
+                        <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                            <h3 class="font-bold text-slate-800 mb-4">📈 Horas por Mes (últimos 6 meses)</h3>
+                            <div class="w-full overflow-x-auto">${barChartSvg}</div>
+                            <p class="text-[10px] text-slate-400 text-center mt-2">Línea punteada: meta mensual (${monthlyGoal} hrs)</p>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm"><h3 class="font-bold text-slate-800 mb-4">Estadísticas de Actividad</h3><div class="space-y-4"><div class="flex justify-between items-center py-2 border-b border-slate-50"><span class="text-sm text-slate-500">🔥 Racha actual</span><span class="font-bold text-slate-800">${streak} días</span></div><div class="flex justify-between items-center py-2 border-b border-slate-50"><span class="text-sm text-slate-500">Promedio diario necesario</span><span class="font-bold text-slate-800">${((monthlyGoal - monthlyHrs) / Math.max(1, getRemainingDaysInMonth())).toFixed(1)} hrs/día</span></div><div class="flex justify-between items-center py-2 border-b border-slate-50"><span class="text-sm text-slate-500">Estudios distintos este mes</span><span class="font-bold text-slate-800">${getUniqueMonthlyStudies()}</span></div><div class="flex justify-between items-center py-2 border-b border-slate-50"><span class="text-sm text-slate-500">Revisitas realizadas este mes</span><span class="font-bold text-slate-800">${revisitsThisMonth}</span></div><div class="flex justify-between items-center py-2"><span class="text-sm text-slate-500">Total días registrados</span><span class="font-bold text-slate-800">${state.dailyRecords.filter(r=>r.totalMinutes>0).length}</span></div></div></div>
+                    </div>
+                    <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm mt-6">
+                        <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            Exportar Resumen Mensual
+                        </h3>
+                        <p class="text-slate-500 text-sm mb-4">Personaliza los valores y descarga una imagen con el resumen de este mes.</p>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Horas del mes</label>
+                                <input type="number" id="export-hours" value="${monthlyHrs.toFixed(1)}" step="0.1" min="0" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-lg text-center">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Estudios realizados</label>
+                                <input type="number" id="export-studies" value="${getUniqueMonthlyStudies()}" step="1" min="0" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-lg text-center">
+                            </div>
+                        </div>
+                        <div class="flex gap-3 mb-4">
+                            <input type="text" id="export-filename" value="resumen_${getDateStr(new Date())}" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" placeholder="Nombre del archivo">
+                            <button onclick="exportMonthlySummary()" class="bg-accent text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-accent/20 active:scale-95 transition-all flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                Exportar como PNG
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-slate-400">La imagen incluirá solo el resumen, no los controles de edición.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function exportMonthlySummary() {
+            const hours = document.getElementById('export-hours')?.value || '0';
+            const studies = document.getElementById('export-studies')?.value || '0';
+            const filename = document.getElementById('export-filename')?.value || 'resumen_mensual';
+            notify("📸 Generando imagen...");
+            const captureDiv = document.createElement('div');
+            captureDiv.style.position = 'absolute';
+            captureDiv.style.left = '-9999px';
+            captureDiv.style.top = '0';
+            captureDiv.style.width = '400px';
+            captureDiv.style.backgroundColor = '#ffffff';
+            captureDiv.style.borderRadius = '32px';
+            captureDiv.style.padding = '32px';
+            captureDiv.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
+            captureDiv.style.fontFamily = "'Plus Jakarta Sans', sans-serif";
+            captureDiv.style.display = 'flex';
+            captureDiv.style.flexDirection = 'column';
+            captureDiv.style.alignItems = 'center';
+            captureDiv.style.textAlign = 'center';
+            const now = new Date();
+            const monthYear = now.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+            captureDiv.innerHTML = `
+                <div style="margin-bottom: 24px;">
+                    <div style="font-size: 14px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 2px;">Resumen Mensual</div>
+                    <div style="font-size: 22px; font-weight: 700; color: #1e293b; margin-top: 4px;">${monthYear}</div>
+                </div>
+                <div style="display: flex; gap: 24px; width: 100%; justify-content: center; margin-bottom: 32px;">
+                    <div style="flex: 1; background: #f8fafc; border-radius: 20px; padding: 20px;">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                            <svg width="32" height="32" fill="none" stroke="#1A73E8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">Horas</div>
+                            <div style="font-size: 36px; font-weight: 800; color: #0f172a; line-height: 1;">${hours}</div>
+                        </div>
+                    </div>
+                    <div style="flex: 1; background: #f8fafc; border-radius: 20px; padding: 20px;">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                            <svg width="32" height="32" fill="none" stroke="#10B981" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                            <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">Estudios</div>
+                            <div style="font-size: 36px; font-weight: 800; color: #0f172a; line-height: 1;">${studies}</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="border-top: 1px solid #e2e8f0; width: 100%; padding-top: 16px; font-size: 12px; color: #94a3b8; font-weight: 500;">
+                    Generado por Tiempo de Campo Pro
+                </div>
+            `;
+            document.body.appendChild(captureDiv);
+            try {
+                const canvas = await html2canvas(captureDiv, {
+                    backgroundColor: '#ffffff',
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    allowTaint: true,
+                });
+                document.body.removeChild(captureDiv);
+                const link = document.createElement('a');
+                link.download = `${filename.replace(/[^a-z0-9_\-]/gi, '_')}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                notify("✅ Imagen descargada");
+            } catch (err) {
+                document.body.removeChild(captureDiv);
+                console.error(err);
+                notify("❌ Error al generar imagen");
+            }
+        }
+
+        function getLast6MonthsData() {
+            const now = new Date();
+            const data = [];
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const month = d.getMonth();
+                const year = d.getFullYear();
+                const monthLabel = d.toLocaleDateString('es-ES', { month: 'short' });
+                const hours = state.dailyRecords.filter(r => {
+                    const rd = new Date(r.date + 'T12:00:00');
+                    return rd.getMonth() === month && rd.getFullYear() === year;
+                }).reduce((acc, curr) => acc + (curr.totalMinutes / 60), 0);
+                data.push({ label: monthLabel, hours: hours, month: month, year: year });
+            }
+            return data;
+        }
+
+        function generateBarChartSvg(data, goal) {
+            const maxHours = Math.max(goal, ...data.map(d => d.hours), 1);
+            const barWidth = 40;
+            const chartHeight = 180;
+            const chartWidth = data.length * (barWidth + 16) + 20;
+            const goalY = chartHeight - (goal / maxHours) * chartHeight;
+            let bars = '';
+            data.forEach((d, i) => {
+                const barHeight = Math.max(4, (d.hours / maxHours) * chartHeight);
+                const x = 30 + i * (barWidth + 16);
+                const y = chartHeight - barHeight + 20;
+                const color = d.hours >= goal ? '#10B981' : '#1A73E8';
+                bars += `
+                    <rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="8" fill="${color}" class="bar-chart-bar"/>
+                    <text x="${x + barWidth/2}" y="${chartHeight + 36}" text-anchor="middle" class="text-[10px] font-bold" fill="#94A3B8">${d.label}</text>
+                    <text x="${x + barWidth/2}" y="${y - 8}" text-anchor="middle" class="text-[10px] font-bold" fill="#475569">${d.hours.toFixed(1)}</text>
+                `;
+            });
+            return `
+                <svg viewBox="0 0 ${chartWidth + 30} ${chartHeight + 55}" class="w-full max-w-[500px] mx-auto" style="min-width:300px;">
+                    <line x1="20" y1="${goalY + 20}" x2="${chartWidth}" y2="${goalY + 20}" stroke="#EF4444" stroke-dasharray="6,4" stroke-width="1.5"/>
+                    <text x="20" y="${goalY + 14}" class="text-[9px] font-bold" fill="#EF4444">Meta</text>
+                    ${bars}
+                </svg>
+            `;
+        }
+
+        function getRemainingDaysInMonth() {
+            const now = new Date();
+            const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            return end.getDate() - now.getDate();
+        }
+
+        function getMonthlyRevisitsCount() {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            let count = 0;
+            state.dailyRecords.forEach(r => {
+                const d = new Date(r.date + 'T12:00:00');
+                if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+                    count += r.attendedRevisits?.length || 0;
+                }
+            });
+            return count;
+        }
+
+        function getMonthlyHours() {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            return state.dailyRecords.filter(r => {
+                const d = new Date(r.date + 'T12:00:00');
+                return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+            }).reduce((acc, curr) => acc + (curr.totalMinutes / 60), 0);
+        }
+
+        function getAnnualHours() {
+            const range = getServiceYearRange();
+            return state.dailyRecords.filter(r => {
+                const d = new Date(r.date + 'T12:00:00');
+                return d >= range.start && d <= range.end;
+            }).reduce((acc, curr) => acc + (curr.totalMinutes / 60), 0);
+        }
+
+        function getUniqueMonthlyStudies() {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            const monthlyStudies = new Set();
+            state.dailyRecords.forEach(r => {
+                const d = new Date(r.date + 'T12:00:00');
+                if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+                    (r.attendedStudies || []).forEach(sId => monthlyStudies.add(sId));
+                }
+            });
+            return monthlyStudies.size;
+        }
+
+        // --- AJUSTES ---
+        function renderAjustesView(container) {
+            let content = `
+                <div class="animate-slide-up">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-6">⚙️ Configuración</h2>
+                    <div class="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-100 mb-6">
+                        <div class="p-6 border-b border-slate-100"><p class="text-[10px] font-bold text-slate-400 uppercase mb-4">Perfil de Usuario</p><div class="flex gap-2 mb-4"><button onclick="setUserType('Regular')" class="flex-1 py-3 rounded-2xl font-bold text-sm transition-all ${state.userSettings.userType === 'Regular' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500'}">Regular (50h/mes)</button><button onclick="setUserType('Auxiliar')" class="flex-1 py-3 rounded-2xl font-bold text-sm transition-all ${state.userSettings.userType === 'Auxiliar' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500'}">Auxiliar (30h/mes)</button></div></div>
+                        <div class="p-6 border-b border-slate-100"><p class="text-[10px] font-bold text-slate-400 uppercase mb-3">Metas Personalizadas</p>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div><label class="text-xs text-slate-500">Meta Mensual (hrs)</label><input type="number" id="custom-monthly-goal" value="${state.userSettings.monthlyGoal}" step="1" min="1" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-center mt-1"></div>
+                                <div><label class="text-xs text-slate-500">Meta Anual (hrs)</label><input type="number" id="custom-annual-goal" value="${state.userSettings.annualGoal}" step="1" min="1" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-center mt-1"></div>
+                            </div>
+                            <button onclick="saveCustomGoals()" class="mt-3 w-full bg-primary/10 text-primary py-3 rounded-xl font-bold text-sm">💾 Guardar Metas</button>
+                        </div>
+                        <div class="p-6"><p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Datos y Respaldo</p>
+                            <button onclick="exportDataJSON()" class="w-full text-left py-4 flex justify-between items-center border-b border-slate-50"><span class="font-medium text-slate-700">📦 Exportar Datos (JSON)</span><svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+                            <button onclick="exportDataCSV()" class="w-full text-left py-4 flex justify-between items-center border-b border-slate-50"><span class="font-medium text-slate-700">📊 Exportar a CSV (Excel)</span><svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+                            <button onclick="importDataPrompt()" class="w-full text-left py-4 flex justify-between items-center border-b border-slate-50"><span class="font-medium text-slate-700">📥 Importar Datos (JSON)</span><svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+                            <button onclick="clearData()" class="w-full text-left py-4 flex justify-between items-center"><span class="font-medium text-danger">🗑️ Borrar Todos los Datos</span><svg class="w-5 h-5 text-danger/30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div>
+                    </div>
+                    <div class="text-center text-slate-400 text-xs">Tiempo de Campo Pro v3.0 · Último backup: ${state.lastBackupDate || 'Nunca'}</div>
+                </div>
+            `;
+            container.innerHTML = content;
+        }
+
+        function saveCustomGoals() {
+            const monthly = parseFloat(document.getElementById('custom-monthly-goal').value);
+            const annual = parseFloat(document.getElementById('custom-annual-goal').value);
+            if (monthly > 0) state.userSettings.monthlyGoal = monthly;
+            if (annual > 0) state.userSettings.annualGoal = annual;
+            state.userSettings.weeklyGoal = state.userSettings.monthlyGoal / 4;
+            state.userSettings.userType = 'Personalizado';
+            saveState();
+            notify("✅ Metas guardadas");
+            renderView();
+        }
+
+        function setUserType(type) {
+            state.userSettings.userType = type;
+            state.userSettings.monthlyGoal = type === 'Regular' ? 50 : 30;
+            state.userSettings.annualGoal = type === 'Regular' ? 600 : 360;
+            state.userSettings.weeklyGoal = state.userSettings.monthlyGoal / 4;
+            saveState();
+            renderView();
+        }
+
+        function clearData() {
+            if (confirm("¿Borrar TODOS los datos? Esta acción no se puede deshacer.")) {
+                state.dailyRecords = [];
+                state.studies = [];
+                state.revisits = [];
+                state.chronometer = { accumulatedMs: 0, startTime: null, state: 'Stopped' };
+                saveState();
+                location.reload();
+            }
+        }
+
+        function exportDataJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+            const link = document.createElement('a');
+            link.href = dataStr;
+            link.download = "tiempo_campo_pro_backup_" + getDateStr(new Date()) + ".json";
+            link.click();
+            notify("📦 Datos exportados (JSON)");
+        }
+
+        function exportDataCSV() {
+            let csv = "Fecha,Horas,Minutos,Estudios,Revisitas,Notas\n";
+            const sorted = [...state.dailyRecords].sort((a, b) => a.date.localeCompare(b.date));
+            sorted.forEach(r => {
+                const estudios = (r.attendedStudies || []).map(sId => {
+                    const s = state.studies.find(st => st.id === sId);
+                    return s ? s.name : '';
+                }).filter(Boolean).join('; ');
+                const revisitas = (r.attendedRevisits || []).map(rId => {
+                    const rv = state.revisits.find(r => r.id === rId);
+                    return rv ? rv.nameOrReference : '';
+                }).filter(Boolean).join('; ');
+                const notas = (r.notes || '').replace(/"/g, '""');
+                csv +=
+                    `"${r.date}",${(r.totalMinutes/60).toFixed(2)},${r.totalMinutes},"${estudios}","${revisitas}","${notas}"\n`;
+            });
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = "tiempo_campo_pro_registros_" + getDateStr(new Date()) + ".csv";
+            link.click();
+            notify("📊 Datos exportados (CSV)");
+        }
+
+        function importDataPrompt() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const imported = JSON.parse(event.target.result);
+                        if (imported.dailyRecords && imported.studies && imported.revisits) {
+                            if (confirm(
+                                    `¿Importar datos? Se fusionarán con los actuales. Se añadirán ${imported.dailyRecords.length} registros, ${imported.studies.length} estudios, ${imported.revisits.length} revisitas.`
+                                    )) {
+                                state.dailyRecords = [...state.dailyRecords, ...imported.dailyRecords];
+                                state.studies = [...state.studies, ...imported.studies];
+                                state.revisits = [...state.revisits, ...imported.revisits];
+                                if (imported.userSettings) state.userSettings = { ...state.userSettings,
+                                    ...imported.userSettings };
+                                saveState();
+                                notify("✅ Datos importados correctamente");
+                                renderView();
+                            }
+                        } else {
+                            alert("Archivo no válido. Debe contener dailyRecords, studies y revisits.");
+                        }
+                    } catch (err) {
+                        alert("Error al leer el archivo: " + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // --- MODIFICADO: Modal de guardar sesión con time picker tipo reloj ---
+        function showSaveSessionModal(minutes) {
+            _timePickerMinutes = minutes;
+            const modal = document.getElementById('modal-container');
+            modal.classList.remove('hidden');
+            modal.innerHTML = `
+                <div class="bg-white rounded-3xl w-full max-w-sm p-6 animate-slide-up shadow-2xl">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">💾 Guardar Registro</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase block mb-2 text-center">⏱️ Tiempo exacto</label>
+                            ${generateTimePickerHtml(minutes)}
+                        </div>
+                        <div><label class="text-[10px] font-bold text-slate-400 uppercase">Estudios atendidos</label><div id="modal-studies-list" class="flex flex-wrap gap-2 mt-2"></div></div>
+                        <div><label class="text-[10px] font-bold text-slate-400 uppercase">Revisitas atendidas</label><div id="modal-revisits-list" class="flex flex-wrap gap-2 mt-2"></div></div>
+                        <div><label class="text-[10px] font-bold text-slate-400 uppercase">Notas</label><textarea id="save-notes" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm" placeholder="Notas adicionales..."></textarea></div>
+                    </div>
+                    <div class="flex gap-3 mt-6"><button onclick="closeModal()" class="flex-1 py-4 font-bold text-slate-400">Descartar</button><button onclick="persistSession()" class="flex-[2] bg-primary text-white py-4 rounded-2xl font-bold">Guardar</button></div>
+                </div>
+            `;
+            const studiesDiv = document.getElementById('modal-studies-list');
+            studiesDiv.innerHTML = '';
+            state.studies.forEach(s => {
+                studiesDiv.innerHTML +=
+                    `<button onclick="this.classList.toggle('bg-accent'); this.classList.toggle('text-white');" data-id="${s.id}" class="study-chip text-xs font-bold border border-slate-200 px-3 py-2 rounded-xl transition-colors">${s.name}</button>`;
+            });
+            const revisitsDiv = document.getElementById('modal-revisits-list');
+            revisitsDiv.innerHTML = '';
+            state.revisits.forEach(r => {
+                revisitsDiv.innerHTML +=
+                    `<button onclick="this.classList.toggle('bg-accent'); this.classList.toggle('text-white');" data-id="${r.id}" class="revisit-chip text-xs font-bold border border-slate-200 px-3 py-2 rounded-xl transition-colors">${r.nameOrReference}</button>`;
+            });
+        }
+
+        // --- MODIFICADO: persistSession ahora usa el time picker ---
+        function persistSession() {
+            const minutes = getTimePickerTotalMinutes();
+            const notes = document.getElementById('save-notes').value;
+            const studyChips = document.querySelectorAll('#modal-studies-list .study-chip.bg-accent');
+            const attendedStudies = Array.from(studyChips).map(c => c.dataset.id);
+            const revisitChips = document.querySelectorAll('#modal-revisits-list .revisit-chip.bg-accent');
+            const attendedRevisits = Array.from(revisitChips).map(c => c.dataset.id);
+            const todayStr = getDateStr(new Date());
+            let record = state.dailyRecords.find(r => r.date === todayStr);
+            if (record) {
+                record.totalMinutes += minutes;
+                record.notes = record.notes ? record.notes + " | " + notes : notes;
+                record.attendedStudies = [...new Set([...(record.attendedStudies || []), ...attendedStudies])];
+                record.attendedRevisits = [...new Set([...(record.attendedRevisits || []), ...attendedRevisits])];
+                record.revisitsCount = record.attendedRevisits.length;
+                record.studySessionsCount = record.attendedStudies.length;
+            } else {
+                state.dailyRecords.push({ date: todayStr, totalMinutes: minutes, notes, attendedStudies,
+                    attendedRevisits, revisitsCount: attendedRevisits.length, studySessionsCount: attendedStudies
+                    .length });
+            }
+            attendedRevisits.forEach(rid => {
+                const rev = state.revisits.find(r => r.id === rid);
+                if (rev) rev.lastVisitDate = todayStr;
+            });
+            saveState();
+            closeModal();
+            notify("✅ Actividad registrada");
+            renderView();
+        }
+
+        function closeModal() {
+            document.getElementById('modal-container').classList.add('hidden');
+        }
+
+        // --- INICIALIZACIÓN ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadState();
+
+            // NUEVO: Verificar soporte de Wake Lock
+            if ('wakeLock' in navigator) {
+                wakeLockSupported = true;
+            }
+
+            // NUEVO: Verificar permiso de notificaciones al cargar
+            if ('Notification' in window) {
+                notificationsPermission = Notification.permission;
+            }
+
+            // NUEVO: Listener de cambio de visibilidad
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            // NUEVO: Si el cronómetro estaba corriendo al cargar, reanudar
+            if (state.chronometer.state === 'Running') {
+                // Ya se recalculó en loadState, ahora iniciamos el intervalo
+                updateChronoUI();
+                requestWakeLock();
+                if (document.hidden) {
+                    showChronoBackgroundNotification();
+                    chronoNotificationInterval = setInterval(() => {
+                        showChronoBackgroundNotification();
+                    }, 30000);
+                }
+            }
+
+            if (!state.chronometer.startTime && state.chronometer.state === 'Running') {
+                state.chronometer.state = 'Stopped';
+                state.chronometer.accumulatedMs = 0;
+            }
+            switchView('hoy');
+            document.getElementById('modal-container').addEventListener('click', function(e) {
+                if (e.target === this) closeModal();
+            });
+            const range = getServiceYearRange();
+            const startMonth = range.start.toLocaleDateString('es-ES', { month: 'short' });
+            const endMonth = range.end.toLocaleDateString('es-ES', { month: 'short' });
+            document.getElementById('service-year-badge').textContent =
+                `${startMonth} ${range.start.getFullYear()} - ${endMonth} ${range.end.getFullYear()}`;
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (state.chronometer.state === 'Running' && state.chronometer.startTime) {
+                const elapsed = Date.now() - state.chronometer.startTime;
+                state.chronometer.accumulatedMs += elapsed;
+                state.chronometer.startTime = null;
+                state.chronometer.state = 'Paused';
+                saveState();
+            }
+            releaseWakeLock();
+            hideChronoBackgroundNotification();
+        });
+
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("sw.js")
+                .then(reg => console.log("Service Worker registrado:", reg))
+                .catch(err => console.error("Error al registrar SW:", err));
+        }
+        if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js")
+      .then(reg => console.log("Service Worker registrado:", reg))
+      .catch(err => console.error("Error al registrar SW:", err));
+  }
+    </script>
+</body>
+</html>
