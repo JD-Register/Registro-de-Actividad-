@@ -1,0 +1,21 @@
+{
+  "name": "My Actividad",
+  "short_name": "Actividad",
+  "start_url": "/My-Actividad-/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "img1.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "img2.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
